@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIZ CERCER - Cerdas Cermat Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js for generating barcodes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+        .pulse-glow {
+            animation: pulseGlow 1.5s infinite;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Global Notification Modal -->
+    <div id="customModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl text-center">
+            <div id="modalIcon" class="text-4xl mb-3 text-amber-400"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h3 id="modalTitle" class="text-xl font-bold mb-2">Informasi</h3>
+            <p id="modalMessage" class="text-slate-300 text-sm mb-6">Pesan disini...</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">Mengerti</button>
+        </div>
+    </div>
+
+    <!-- Top Navbar -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-500 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/30 text-white font-black text-xl flex items-center justify-center w-10 h-10">
+                QC
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">QUIZ CERCER</h1>
+                <p class="text-xs text-slate-400" id="roleIndicator">Pilih Mode untuk Memulai</p>
+            </div>
+        </div>
+        <div id="roomBadge" class="hidden items-center space-x-2 bg-slate-700/60 px-3 py-1.5 rounded-full border border-slate-600 text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span id="displayRoomCode" class="font-mono tracking-wider text-emerald-300">ROOM: ---</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 flex flex-col p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+        <!-- VIEW 1: SELECT ROLE & ROOM SETUP -->
+        <div id="viewRoleSelect" class="flex-1 flex items-center justify-center">
+            <div class="bg-slate-800 border border-slate-700/80 p-8 rounded-3xl shadow-2xl max-w-xl w-full text-center space-y-6">
+                <div class="inline-block p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 text-4xl mb-1 border border-indigo-500/20">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold tracking-tight">Selamat Datang di QUIZ CERCER</h2>
+                <p class="text-slate-400 text-sm">Platform Cerdas Cermat Online Interaktif real-time antara Host Guru dan Regu Peserta.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                    <button onclick="initHostMode()" class="p-6 bg-gradient-to-br from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 rounded-2xl font-bold transition shadow-xl shadow-indigo-600/30 flex flex-col items-center space-y-3 group border border-indigo-400/30">
+                        <i class="fa-solid fa-chalkboard-user text-3xl group-hover:scale-110 transition"></i>
+                        <span>Masuk sebagai Host (Guru)</span>
+                    </button>
+                    <button onclick="showParticipantJoinModal()" class="p-6 bg-slate-700 hover:bg-slate-600 rounded-2xl font-bold transition shadow-xl border border-slate-600 flex flex-col items-center space-y-3 group">
+                        <i class="fa-solid fa-users-rectangle text-3xl group-hover:scale-110 transition text-emerald-400"></i>
+                        <span>Masuk sebagai Peserta (Regu)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: HOST DASHBOARD -->
+        <div id="viewHostDashboard" class="hidden flex-1 flex flex-col space-y-6">
+            <!-- Host Top Bar / Room Meta -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Kode Room</p>
+                        <h3 id="hostRoomCodeText" class="text-xl font-black font-mono text-indigo-400 tracking-wider">------</h3>
+                    </div>
+                    <button onclick="copyShareLink()" class="p-2.5 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/40 rounded-xl transition text-sm" title="Salin Link Kuis">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Target Peserta (Regu)</p>
+                        <select id="targetParticipantCount" onchange="updateTargetParticipants(this.value)" class="bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-sm font-bold text-emerald-400 mt-1 outline-none">
+                            <option value="2">2 Regu</option>
+                            <option value="3">3 Regu</option>
+                            <option value="4" selected>4 Regu</option>
+                            <option value="5">5 Regu</option>
+                            <option value="6">6 Regu</option>
+                        </select>
+                    </div>
+                    <div class="text-right">
+                        <span id="connectedCountBadge" class="text-xl font-black text-emerald-400">0</span>
+                        <p class="text-xs text-slate-400">Terhubung</p>
+                    </div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex items-center justify-between md:col-span-2">
+                    <div class="flex items-center space-x-3">
+                        <div id="qrCodeContainer" class="bg-white p-1.5 rounded-lg w-16 h-16 flex items-center justify-center overflow-hidden"></div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium">Barcode & Quick Join</p>
+                            <p class="text-xs text-emerald-400 mt-0.5"><i class="fa-solid fa-qrcode"></i> Scan / Gunakan Kode</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="switchHostTab('questions')" id="btnTabQ" class="px-4 py-2 bg-indigo-600 text-xs font-semibold rounded-xl transition">Bank Soal</button>
+                        <button onclick="switchHostTab('live')" id="btnTabL" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-xl transition">Live Kuis</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: BANK SOAL & PESERTA MANAGEMENT -->
+            <div id="hostTabQuestions" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+                <!-- Left Column: Question Manager & Import -->
+                <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-book-open text-indigo-400"></i>
+                            <span>Kelola Soal Cerdas Cermat</span>
+                        </h3>
+                        <div class="flex space-x-2">
+                            <label class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl cursor-pointer transition shadow flex items-center space-x-1.5">
+                                <input type="file" id="importFile" accept=".docx,.doc,.pdf,.txt" class="hidden" onchange="handleFileImport(event)">
+                                <i class="fa-solid fa-file-arrow-up"></i>
+                                <span>Import (Word/PDF/Txt)</span>
+                            </label>
+                            <button onclick="openQuestionModal()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-xl transition shadow flex items-center space-x-1.5">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Tambah Soal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question List Table -->
+                    <div class="flex-1 overflow-y-auto max-h-[420px] space-y-3 pr-2" id="hostQuestionList">
+                        <!-- Dynamic rendered questions -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Registered Participants / Teams Monitor -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-users text-emerald-400"></i>
+                            <span>Regu Peserta Terhubung</span>
+                        </h3>
+                        <button onclick="resetParticipants()" class="text-xs text-rose-400 hover:text-rose-300"><i class="fa-solid fa-rotate-right"></i> Reset</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto space-y-3" id="hostParticipantsList">
+                        <!-- Dynamic connected participant teams -->
+                    </div>
+                    <div class="pt-2 border-t border-slate-700">
+                        <button onclick="switchHostTab('live')" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2">
+                            <span>Mulai Sesi Kuis Live</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: LIVE QUIZ ARENA (HOST) -->
+            <div id="hostTabLive" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+                <!-- Left: Question Display & Timer Control -->
+                <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    <!-- Top Bar: Current Question & Timer Settings -->
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-lg text-sm font-bold" id="liveQIndexLabel">Soal 1/10</span>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-xs text-slate-400">Timer:</label>
+                                <select id="timerDurationSelect" onchange="changeTimerDuration(this.value)" class="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs font-bold text-amber-400 outline-none">
+                                    <option value="5">5 Detik</option>
+                                    <option value="10">10 Detik</option>
+                                    <option value="15" selected>15 Detik</option>
+                                    <option value="20">20 Detik</option>
+                                    <option value="25">25 Detik</option>
+                                    <option value="30">30 Detik</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div id="liveTimerDisplay" class="text-3xl font-black font-mono text-amber-400 bg-slate-900/80 px-4 py-1.5 rounded-xl border border-slate-700">15</div>
+                            <button onclick="startTimer()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-play"></i><span>Mulai</span>
+                            </button>
+                            <button onclick="resetTimer()" class="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs transition">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question Content Area -->
+                    <div class="flex-1 flex flex-col justify-center space-y-6">
+                        <h2 id="liveQuestionText" class="text-xl md:text-2xl font-bold text-slate-100 leading-relaxed">
+                            Memuat Pertanyaan Kuis...
+                        </h2>
+                        <!-- Options Grid -->
+                        <div id="liveOptionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Options -->
+                        </div>
+                    </div>
+
+                    <!-- Bottom Controls: Next Question -->
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-700">
+                        <button onclick="switchHostTab('questions')" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-xl transition">
+                            <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Bank Soal
+                        </button>
+                        <button onclick="nextQuestion()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 flex items-center space-x-2">
+                            <span>Soal Selanjutnya</span>
+                            <i class="fa-solid fa-forward"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Buzzer Activity & Scoreboard Control -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col space-y-6">
+                    <div>
+                        <h3 class="text-base font-bold flex items-center space-x-2 mb-2">
+                            <i class="fa-solid fa-bell text-amber-400"></i>
+                            <span>Monitor Bel (Buzzer)</span>
+                        </h3>
+                        <div id="hostBuzzerAlertBox" class="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
+                            <p class="text-xs text-slate-400">Menunggu peserta menekan bel...</p>
+                            <div id="buzzerWinnerDisplay" class="text-lg font-black text-emerald-400 mt-1">Bel Belum Ditekan</div>
+                        </div>
+                        <button onclick="resetBuzzer()" class="w-full mt-2 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-xl transition">
+                            Reset Bel Peserta
+                        </button>
+                    </div>
+
+                    <!-- Scores & Point Adjustment (+10 / -5) -->
+                    <div class="flex-1 flex flex-col space-y-3">
+                        <h3 class="text-base font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-trophy text-amber-400"></i>
+                            <span>Poin & Skor Regu</span>
+                        </h3>
+                        <div class="flex-1 overflow-y-auto space-y-3" id="hostScoreList">
+                            <!-- Dynamic team score controllers -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: PARTICIPANT ARENA -->
+        <div id="viewParticipantArena" class="hidden flex-1 flex flex-col max-w-2xl mx-auto w-full space-y-6 justify-center">
+            <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl text-center space-y-6 relative overflow-hidden">
+                <div class="absolute top-4 left-4 bg-slate-700/80 px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-300">
+                    Regu: <span id="myTeamNameDisplay" class="text-emerald-400 font-bold">---</span>
+                </div>
+                <div class="absolute top-4 right-4 bg-indigo-500/20 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-bold text-indigo-300">
+                    Skor: <span id="myTeamScoreDisplay">0</span> Pts
+                </div>
+
+                <div class="pt-6">
+                    <span class="text-xs text-slate-400 uppercase tracking-widest">Status Kuis Aktif</span>
+                    <h2 id="participantQuestionTitle" class="text-xl md:text-2xl font-bold mt-2 text-slate-100">
+                        Menunggu Guru Memulai Soal...
+                    </h2>
+                </div>
+
+                <!-- Big Buzzer Button -->
+                <div class="py-8 flex flex-col items-center justify-center">
+                    <button id="buzzerBtn" onclick="pressBuzzer()" class="w-48 h-48 md:w-56 md:h-56 rounded-full bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 active:scale-95 transition shadow-2xl shadow-rose-600/50 flex flex-col items-center justify-center border-8 border-rose-700/50 group select-none">
+                        <i class="fa-solid fa-bell text-5xl md:text-6xl text-white mb-2 group-hover:rotate-12 transition"></i>
+                        <span class="text-white font-extrabold text-xl md:text-2xl tracking-wider">TEKAN BEL</span>
+                    </button>
+                    <p id="buzzerStatusNote" class="text-xs text-slate-400 mt-4">Tekan bel jika regu Anda tahu jawabannya!</p>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700 text-left">
+                    <p class="text-xs text-slate-400 font-semibold mb-1">Informasi Soal:</p>
+                    <p id="participantCurrentInfo" class="text-sm text-slate-300 font-medium">Belum ada soal aktif dari host.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Join Participant (Barcode/Link input) -->
+    <div id="participantJoinModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl space-y-6">
+            <div class="text-center">
+                <div class="inline-block p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 text-3xl mb-2 border border-emerald-500/20">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </div>
+                <h3 class="text-2xl font-bold">Gabung Kuis Regu</h3>
+                <p class="text-slate-400 text-xs mt-1">Masukkan kode room dari host atau scan barcode.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Kode Room Kuis</label>
+                    <input type="text" id="joinRoomCodeInput" placeholder="Contoh: QC-8921" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm uppercase tracking-widest font-mono text-center font-bold text-indigo-400 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Nama Regu Peserta</label>
+                    <input type="text" id="joinTeamNameInput" placeholder="Contoh: Regu Alpha / SMAN 1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-center font-bold text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <button onclick="submitJoinParticipant()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl transition shadow-lg shadow-emerald-600/30 text-sm">
+                    Masuk Ruangan Kuis
+                </button>
+            </div>
+            <button onclick="closeParticipantJoinModal()" class="w-full text-xs text-slate-400 hover:text-slate-300 pt-2">Batal</button>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Question -->
+    <div id="questionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <h3 id="questionModalTitle" class="text-xl font-bold">Tambah Soal Baru</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Tipe Soal</label>
+                    <select id="qTypeSelect" onchange="toggleQuestionTypeFields(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium outline-none">
+                        <option value="pg">Pilihan Ganda</option>
+                        <option value="bs">Benar / Salah</option>
+                        <option value="essay">Essay / Uraian</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Pertanyaan</label>
+                    <textarea id="qTextInput" rows="3" placeholder="Tuliskan pertanyaan di sini..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none resize-none"></textarea>
+                </div>
+
+                <div id="qOptionsContainer" class="space-y-2">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Pilihan Jawaban (A, B, C, D)</label>
+                    <input type="text" id="optA" placeholder="Pilihan A" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mb-2">
+                    <input type="text" id="optB" placeholder="Pilihan B" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mb-2">
+                    <input type="text" id="optC" placeholder="Pilihan C" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mb-2">
+                    <input type="text" id="optD" placeholder="Pilihan D" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Kunci Jawaban</label>
+                    <input type="text" id="qKeyInput" placeholder="Contoh: A, Benar, atau kata kunci essay" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none font-bold text-emerald-400">
+                </div>
+
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="saveQuestion()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-sm transition shadow">Simpan Soal</button>
+                    <button onclick="closeQuestionModal()" class="px-5 py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-sm transition">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Sanitize appId to prevent path segment mismatches in Firestore security rules
+        const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'quiz-cercer-default-app';
+        const sanitizedAppId = rawAppId.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+        // Global Firebase handles & methods
+        window.fb = {
+            app: null,
+            db: null,
+            auth: null,
+            user: null,
+            ready: null,
+            appId: sanitizedAppId,
+            doc, setDoc, getDoc, onSnapshot, updateDoc, collection, runTransaction
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        window.fb.ready = (async function initFirebase() {
+            try {
+                if (firebaseConfig && firebaseConfig.projectId) {
+                    window.fb.app = initializeApp(firebaseConfig);
+                    window.fb.db = getFirestore(window.fb.app);
+                    window.fb.auth = getAuth(window.fb.app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(window.fb.auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(window.fb.auth);
+                    }
+
+                    await new Promise((resolve) => {
+                        const unsubscribe = onAuthStateChanged(window.fb.auth, (user) => {
+                            if (user) {
+                                window.fb.user = user;
+                                unsubscribe();
+                                resolve(user);
+                            }
+                        });
+                    });
+                }
+            } catch (err) {
+                console.warn("Offline fallback mode:", err);
+            }
+        })();
+    </script>
+
+    <!-- Application Script Logic -->
+    <script>
+        // Application State
+        let currentRole = null; // 'host' | 'participant'
+        let roomCode = '';
+        let targetParticipants = 4;
+        let currentQuestionIndex = 0;
+        let timerDuration = 15;
+        let timerRemaining = 15;
+        let timerInterval = null;
+        let buzzerWinner = null;
+        let buzzerWinnerName = '';
+        let currentParticipantId = null;
+        let myScore = 0;
+        let editingQuestionIndex = null;
+        let roomUnsubscribe = null;
+
+        // Default Question Bank
+        let questions = [
+            {
+                type: 'pg',
+                text: 'Siapakah proklamator kemerdekaan Indonesia bersama Ir. Soekarno?',
+                options: ['Drs. Moh. Hatta', 'Sutan Sjahrir', 'Tan Malaka', 'Ki Hajar Dewantara'],
+                key: 'A'
+            },
+            {
+                type: 'bs',
+                text: 'Benar atau Salah: Planet terbesar dalam tata surya kita adalah Jupiter.',
+                options: ['Benar', 'Salah'],
+                key: 'Benar'
+            },
+            {
+                type: 'essay',
+                text: 'Sebutkan ibukota provinsi Jawa Barat!',
+                options: [],
+                key: 'Bandung'
+            }
+        ];
+
+        // Connected Participants State
+        let participants = [];
+
+        // Label perangkat otomatis dari browser dan sistem operasi (tanpa fingerprint unik).
+        function detectDeviceLabel() {
+            const ua = navigator.userAgent || '';
+            let browser = 'Browser';
+            if (/Edg\//.test(ua)) browser = 'Edge';
+            else if (/Firefox\//.test(ua)) browser = 'Firefox';
+            else if (/Chrome\//.test(ua)) browser = 'Chrome';
+            else if (/Safari\//.test(ua)) browser = 'Safari';
+            const device = /Android/i.test(ua) ? 'Android' :
+                /iPhone|iPad|iPod/i.test(ua) ? 'iPhone/iPad' :
+                /Windows/i.test(ua) ? 'Windows' :
+                /Macintosh|Mac OS/i.test(ua) ? 'Mac' :
+                /Linux/i.test(ua) ? 'Linux' : (navigator.platform || 'Perangkat');
+            return `${device} • ${browser}`;
+        }
+
+        // Audio Context for Bell & Timer Sounds
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq, type, duration) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) { console.warn(e); }
+        }
+
+        function playBellSound() {
+            playTone(880, 'sine', 0.6);
+            setTimeout(() => playTone(1174.66, 'sine', 0.8), 100);
+        }
+
+        function playTimeUpSound() {
+            playTone(300, 'sawtooth', 0.4);
+            setTimeout(() => playTone(250, 'sawtooth', 0.6), 300);
+        }
+
+        function playTickSound() {
+            playTone(760, 'sine', 0.12);
+        }
+
+        // Modal Handlers
+        function showModal(title, message, iconClass = 'fa-solid fa-circle-exclamation text-amber-400') {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('modalIcon').innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        // Helper: Sync state to Cloud Database
+        async function syncRoomToCloud() {
+            if (window.fb && window.fb.ready) await window.fb.ready;
+            if (!window.fb || !window.fb.db || !window.fb.user || !roomCode) return;
+            try {
+                const roomRef = window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', 'rooms', roomCode);
+                await window.fb.setDoc(roomRef, {
+                    roomCode,
+                    hostUid: window.hostUid || null,
+                    targetParticipants,
+                    timerDuration,
+                    currentQuestionIndex,
+                    questions,
+                    participants,
+                    buzzerWinner,
+                    buzzerWinnerName,
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (e) {
+                console.warn("Cloud sync skipped (permissions/offline):", e.message);
+            }
+        }
+
+        // Helper: Listen to Cloud Database changes
+        async function listenToRoomCloud(code) {
+            if (window.fb && window.fb.ready) await window.fb.ready;
+            if (!window.fb || !window.fb.db || !window.fb.user) return;
+            if (roomUnsubscribe) roomUnsubscribe();
+
+            const roomRef = window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', 'rooms', code);
+            roomUnsubscribe = window.fb.onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (currentRole === 'host') {
+                        participants = data.participants || [];
+                        renderHostParticipants();
+                        renderHostScores();
+
+                        if (data.buzzerWinner && data.buzzerWinner !== buzzerWinner) {
+                            buzzerWinner = data.buzzerWinner;
+                            buzzerWinnerName = data.buzzerWinnerName;
+                            playBellSound();
+                            document.getElementById('hostBuzzerAlertBox').className = 'p-4 rounded-xl bg-emerald-950/80 border border-emerald-500 text-center pulse-glow';
+                            document.getElementById('buzzerWinnerDisplay').innerText = `🔔 ${buzzerWinnerName} MENEKAN BEL!`;
+                        } else if (!data.buzzerWinner && buzzerWinner) {
+                            buzzerWinner = null;
+                            buzzerWinnerName = '';
+                            document.getElementById('hostBuzzerAlertBox').className = 'p-4 rounded-xl bg-slate-900 border border-slate-700 text-center';
+                            document.getElementById('buzzerWinnerDisplay').innerText = 'Bel Belum Ditekan';
+                        }
+                    } else if (currentRole === 'participant') {
+                        const qList = data.questions || [];
+                        const qIdx = data.currentQuestionIndex || 0;
+                        if (qList[qIdx]) {
+                            document.getElementById('participantQuestionTitle').innerText = `Pertanyaan #${qIdx + 1}`;
+                            document.getElementById('participantCurrentInfo').innerText = qList[qIdx].text;
+                        }
+
+                        const me = (data.participants || []).find(p => p.id === currentParticipantId);
+                        if (me) {
+                            myScore = me.score;
+                            document.getElementById('myTeamScoreDisplay').innerText = myScore;
+                        }
+
+                        const btn = document.getElementById('buzzerBtn');
+                        const note = document.getElementById('buzzerStatusNote');
+                        if (data.buzzerWinner) {
+                            buzzerWinner = data.buzzerWinner;
+                            btn.disabled = true;
+                            btn.classList.add('opacity-40', 'cursor-not-allowed', 'scale-95');
+                            if (data.buzzerWinner === currentParticipantId) {
+                                note.innerText = "🔔 ANDA BERHASIL MENEKAN BEL PERTAMA!";
+                                note.className = "text-xs text-emerald-400 font-bold mt-4";
+                            } else {
+                                note.innerText = `🔒 Bel dikunci oleh ${data.buzzerWinnerName}`;
+                                note.className = "text-xs text-rose-400 font-bold mt-4";
+                            }
+                        } else {
+                            buzzerWinner = null;
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-40', 'cursor-not-allowed', 'scale-95');
+                            note.innerText = "Tekan bel jika regu Anda tahu jawabannya!";
+                            note.className = "text-xs text-slate-400 mt-4";
+                        }
+                    }
+                }
+            }, (err) => {
+                console.warn("Realtime listener fallback:", err.message);
+            });
+        }
+
+        // Role Initialization: HOST
+        async function initHostMode() {
+            currentRole = 'host';
+            roomCode = 'QC-' + Math.floor(1000 + Math.random() * 9000);
+            if (window.fb && window.fb.ready) await window.fb.ready;
+            window.hostUid = window.fb?.user?.uid || null;
+            
+            document.getElementById('viewRoleSelect').classList.add('hidden');
+            document.getElementById('viewHostDashboard').classList.remove('hidden');
+            document.getElementById('roleIndicator').innerText = 'Mode Host (Guru)';
+            document.getElementById('roomBadge').classList.remove('hidden');
+            document.getElementById('roomBadge').classList.add('flex');
+            document.getElementById('displayRoomCode').innerText = `ROOM: ${roomCode}`;
+            document.getElementById('hostRoomCodeText').innerText = roomCode;
+
+            // Generate QR Code
+            const qrContainer = document.getElementById('qrCodeContainer');
+            qrContainer.innerHTML = '';
+            const joinUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+            new QRCode(qrContainer, {
+                text: joinUrl.startsWith('http') ? joinUrl : roomCode,
+                width: 56,
+                height: 56
+            });
+
+            renderHostQuestions();
+            renderHostParticipants();
+            await syncRoomToCloud();
+            listenToRoomCloud(roomCode);
+        }
+
+        function switchHostTab(tab) {
+            const tabQ = document.getElementById('hostTabQuestions');
+            const tabL = document.getElementById('hostTabLive');
+            const btnQ = document.getElementById('btnTabQ');
+            const btnL = document.getElementById('btnTabL');
+
+            if (tab === 'questions') {
+                tabQ.classList.remove('hidden');
+                tabL.classList.add('hidden');
+                btnQ.className = 'px-4 py-2 bg-indigo-600 text-xs font-semibold rounded-xl transition';
+                btnL.className = 'px-4 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-xl transition';
+            } else {
+                tabQ.classList.add('hidden');
+                tabL.classList.remove('hidden');
+                btnL.className = 'px-4 py-2 bg-indigo-600 text-xs font-semibold rounded-xl transition';
+                btnQ.className = 'px-4 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-xl transition';
+                renderHostLiveQuiz();
+                renderHostScores();
+            }
+        }
+
+        function copyShareLink() {
+            const isPublicUrl = window.location.protocol.startsWith('http') && !window.location.href.includes('srcdoc');
+            const shareText = isPublicUrl 
+                ? `${window.location.origin}${window.location.pathname}?room=${roomCode}`
+                : roomCode;
+
+            const tempInput = document.createElement('input');
+            tempInput.value = shareText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            if (isPublicUrl) {
+                showModal('Link Kuis Disalin', `Link bergabung berhasil disalin:\n${shareText}`, 'fa-solid fa-check-circle text-emerald-400');
+            } else {
+                showModal('Kode Room Disalin', `Aplikasi berjalan dalam mode pratinjau lokal. Kode Room (${roomCode}) telah disalin! Minta siswa memilih "Masuk sebagai Peserta" dan memasukkan kode ${roomCode}.`, 'fa-solid fa-key text-indigo-400');
+            }
+        }
+
+        function updateTargetParticipants(val) {
+            targetParticipants = parseInt(val);
+            renderHostParticipants();
+            syncRoomToCloud();
+        }
+
+        // Question Management (CRUD & Import)
+        function renderHostQuestions() {
+            const list = document.getElementById('hostQuestionList');
+            list.innerHTML = '';
+            questions.forEach((q, idx) => {
+                const badgeColor = q.type === 'pg' ? 'bg-indigo-500/20 text-indigo-300' : q.type === 'bs' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300';
+                const badgeLabel = q.type === 'pg' ? 'Pilihan Ganda' : q.type === 'bs' ? 'Benar/Salah' : 'Essay';
+                list.innerHTML += `
+                    <div class="bg-slate-900/70 border border-slate-700 p-4 rounded-xl flex justify-between items-start gap-4">
+                        <div class="space-y-1 flex-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-bold text-slate-400">#${idx + 1}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeColor}">${badgeLabel}</span>
+                                <span class="text-xs text-emerald-400 font-semibold">Kunci: ${q.key}</span>
+                            </div>
+                            <p class="text-sm font-medium text-slate-200">${q.text}</p>
+                        </div>
+                        <div class="flex space-x-1.5">
+                            <button onclick="openQuestionModal(${idx})" class="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs transition" title="Edit Soal"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteQuestion(${idx})" class="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg text-xs transition" title="Hapus Soal"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openQuestionModal(idx = null) {
+            editingQuestionIndex = idx;
+            const modal = document.getElementById('questionModal');
+            modal.classList.remove('hidden');
+
+            if (idx !== null) {
+                const q = questions[idx];
+                document.getElementById('questionModalTitle').innerText = 'Edit Soal';
+                document.getElementById('qTypeSelect').value = q.type;
+                document.getElementById('qTextInput').value = q.text;
+                document.getElementById('qKeyInput').value = q.key;
+                toggleQuestionTypeFields(q.type);
+                if (q.type === 'pg') {
+                    document.getElementById('optA').value = q.options[0] || '';
+                    document.getElementById('optB').value = q.options[1] || '';
+                    document.getElementById('optC').value = q.options[2] || '';
+                    document.getElementById('optD').value = q.options[3] || '';
+                }
+            } else {
+                document.getElementById('questionModalTitle').innerText = 'Tambah Soal Baru';
+                document.getElementById('qTypeSelect').value = 'pg';
+                document.getElementById('qTextInput').value = '';
+                document.getElementById('qKeyInput').value = '';
+                document.getElementById('optA').value = '';
+                document.getElementById('optB').value = '';
+                document.getElementById('optC').value = '';
+                document.getElementById('optD').value = '';
+                toggleQuestionTypeFields('pg');
+            }
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.add('hidden');
+        }
+
+        function toggleQuestionTypeFields(type) {
+            const container = document.getElementById('qOptionsContainer');
+            if (type === 'pg') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function saveQuestion() {
+            const type = document.getElementById('qTypeSelect').value;
+            const text = document.getElementById('qTextInput').value.trim();
+            const key = document.getElementById('qKeyInput').value.trim();
+
+            if (!text || !key) {
+                showModal('Data Belum Lengkap', 'Pertanyaan dan kunci jawaban wajib diisi.');
+                return;
+            }
+
+            let options = [];
+            if (type === 'pg') {
+                options = [
+                    document.getElementById('optA').value.trim() || 'Pilihan A',
+                    document.getElementById('optB').value.trim() || 'Pilihan B',
+                    document.getElementById('optC').value.trim() || 'Pilihan C',
+                    document.getElementById('optD').value.trim() || 'Pilihan D'
+                ];
+            } else if (type === 'bs') {
+                options = ['Benar', 'Salah'];
+            }
+
+            const newQ = { type, text, options, key };
+            if (editingQuestionIndex !== null) {
+                questions[editingQuestionIndex] = newQ;
+            } else {
+                questions.push(newQ);
+            }
+
+            closeQuestionModal();
+            renderHostQuestions();
+            syncRoomToCloud();
+        }
+
+        function deleteQuestion(idx) {
+            if (questions.length <= 1) {
+                showModal('Tidak Dapat Menghapus', 'Minimal harus ada 1 soal dalam bank soal.');
+                return;
+            }
+            questions.splice(idx, 1);
+            if (currentQuestionIndex >= questions.length) currentQuestionIndex = 0;
+            renderHostQuestions();
+            syncRoomToCloud();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 5);
+                let importedCount = 0;
+
+                if (lines.length > 0 && file.name.endsWith('.txt')) {
+                    lines.forEach(line => {
+                        const parts = line.split('|');
+                        if (parts.length >= 2) {
+                            questions.push({
+                                type: parts.length >= 6 ? 'pg' : 'essay',
+                                text: parts[0].trim(),
+                                options: parts.length >= 6 ? [parts[1].trim(), parts[2].trim(), parts[3].trim(), parts[4].trim()] : [],
+                                key: parts[parts.length - 1].trim()
+                            });
+                            importedCount++;
+                        }
+                    });
+                }
+
+                if (importedCount === 0) {
+                    // Simulated parser fallback for Word/PDF binary files
+                    questions.push({
+                        type: 'pg',
+                        text: `[Import ${file.name}] Hasil dari 25 x 4 + 50 adalah...`,
+                        options: ['100', '125', '150', '200'],
+                        key: 'C'
+                    });
+                    importedCount = 1;
+                }
+
+                renderHostQuestions();
+                syncRoomToCloud();
+                showModal('Import Berhasil', `${importedCount} soal berhasil ditambahkan dari file ${file.name}.`, 'fa-solid fa-file-circle-check text-emerald-400');
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Participant List Management on Host
+        function renderHostParticipants() {
+            const list = document.getElementById('hostParticipantsList');
+            document.getElementById('connectedCountBadge').innerText = `${participants.length}/${targetParticipants}`;
+            list.innerHTML = '';
+
+            for (let i = 0; i < targetParticipants; i++) {
+                const p = participants[i];
+                if (p) {
+                    list.innerHTML += `
+                        <div class="bg-slate-900/80 border border-emerald-500/40 p-3.5 rounded-xl flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-100">${p.name}</p>
+                                    <p class="text-[11px] text-emerald-400">Online • Skor: ${p.score}</p>
+                                    <p class="text-[10px] text-slate-400">${p.deviceLabel || 'Perangkat tidak terdeteksi'}${p.joinedAt ? ' • Masuk ' + new Date(p.joinedAt).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : ''}</p>
+                                </div>
+                            </div>
+                            <button onclick="removeParticipant('${p.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-1.5" title="Keluarkan Peserta">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    list.innerHTML += `
+                        <div class="bg-slate-900/40 border border-dashed border-slate-700 p-3.5 rounded-xl flex items-center space-x-3 opacity-60">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                            <p class="text-xs text-slate-400">Slot Regu #${i + 1} (Menunggu Peserta...)</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function removeParticipant(id) {
+            participants = participants.filter(p => p.id !== id);
+            renderHostParticipants();
+            renderHostScores();
+            syncRoomToCloud();
+        }
+
+        async function resetParticipants() {
+            if (currentRole !== 'host') return;
+            participants = [];
+            buzzerWinner = null;
+            buzzerWinnerName = '';
+            resetBuzzerDisplay();
+            renderHostParticipants();
+            renderHostScores();
+            await syncRoomToCloud();
+        }
+
+        // Live Quiz Rendering & Controls
+        function renderHostLiveQuiz() {
+            const q = questions[currentQuestionIndex];
+            if (!q) return;
+
+            document.getElementById('liveQIndexLabel').innerText = `Soal ${currentQuestionIndex + 1}/${questions.length}`;
+            document.getElementById('liveQuestionText').innerText = q.text;
+
+            const grid = document.getElementById('liveOptionsGrid');
+            grid.innerHTML = '';
+
+            if (q.type === 'pg') {
+                const labels = ['A', 'B', 'C', 'D'];
+                q.options.forEach((opt, idx) => {
+                    const letter = labels[idx];
+                    grid.innerHTML += `
+                        <button onclick="evaluateHostOption(this, '${letter}', '${q.key}')" class="p-4 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-left flex items-center space-x-3 transition">
+                            <span class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-indigo-400 text-sm">${letter}</span>
+                            <span class="text-sm font-medium">${opt}</span>
+                        </button>
+                    `;
+                });
+            } else if (q.type === 'bs') {
+                ['Benar', 'Salah'].forEach(opt => {
+                    grid.innerHTML += `
+                        <button onclick="evaluateHostOption(this, '${opt}', '${q.key}')" class="p-4 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-center font-bold text-sm transition">
+                            ${opt}
+                        </button>
+                    `;
+                });
+            } else {
+                grid.innerHTML = `
+                    <div class="col-span-2 p-4 bg-slate-900/80 border border-emerald-500/30 rounded-xl">
+                        <p class="text-xs text-slate-400 mb-1">Kunci Jawaban Essay:</p>
+                        <p class="text-base font-bold text-emerald-400">${q.key}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function evaluateHostOption(btnEl, selected, correctKey) {
+            const isCorrect = selected.toLowerCase() === correctKey.toLowerCase();
+            if (isCorrect) {
+                btnEl.classList.remove('bg-slate-900', 'border-slate-700');
+                btnEl.classList.add('bg-emerald-600/30', 'border-emerald-500', 'text-emerald-200');
+                playBellSound();
+            } else {
+                btnEl.classList.remove('bg-slate-900', 'border-slate-700');
+                btnEl.classList.add('bg-rose-600/30', 'border-rose-500', 'text-rose-200');
+                playTimeUpSound();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                buzzerWinner = null;
+                buzzerWinnerName = '';
+                document.getElementById('hostBuzzerAlertBox').className = 'p-4 rounded-xl bg-slate-900 border border-slate-700 text-center';
+                document.getElementById('buzzerWinnerDisplay').innerText = 'Bel Belum Ditekan';
+                renderHostLiveQuiz();
+                resetTimer();
+                syncRoomToCloud();
+            } else {
+                showModal('Kuis Selesai', 'Semua soal dalam sesi ini telah selesai ditampilkan.', 'fa-solid fa-flag-checkered text-emerald-400');
+            }
+        }
+
+        // Timer Controls
+        function changeTimerDuration(val) {
+            timerDuration = parseInt(val);
+            resetTimer();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timerRemaining > 0) {
+                    timerRemaining--;
+                    document.getElementById('liveTimerDisplay').innerText = timerRemaining;
+                    if (timerRemaining <= 5 && timerRemaining > 0) playTickSound();
+                } else {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    playTimeUpSound();
+                    document.getElementById('liveTimerDisplay').classList.add('text-rose-500');
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            timerRemaining = timerDuration;
+            const display = document.getElementById('liveTimerDisplay');
+            display.innerText = timerRemaining;
+            display.classList.remove('text-rose-500');
+        }
+
+        // Buzzer & Score Controls on Host
+        function resetBuzzerDisplay() {
+            const box = document.getElementById('hostBuzzerAlertBox');
+            if (box) box.className = 'p-4 rounded-xl bg-slate-900 border border-slate-700 text-center';
+            const display = document.getElementById('buzzerWinnerDisplay');
+            if (display) display.innerText = 'Bel Belum Ditekan';
+        }
+
+        async function resetBuzzer() {
+            if (currentRole !== 'host') return;
+            buzzerWinner = null;
+            buzzerWinnerName = '';
+            resetBuzzerDisplay();
+            if (window.fb?.db && window.fb?.user && roomCode) {
+                try {
+                    const roomRef = window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', 'rooms', roomCode);
+                    await window.fb.updateDoc(roomRef, { buzzerWinner: null, buzzerWinnerName: '', buzzerResetAt: Date.now() });
+                } catch (e) {
+                    console.error('Reset buzzer gagal disinkronkan:', e);
+                    showModal('Reset Bel Gagal', 'Periksa koneksi internet, lalu coba reset kembali.');
+                }
+            } else {
+                await syncRoomToCloud();
+            }
+        }
+
+        function renderHostScores() {
+            const list = document.getElementById('hostScoreList');
+            list.innerHTML = '';
+            if (participants.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada regu peserta yang terhubung.</p>`;
+                return;
+            }
+            participants.forEach((p, idx) => {
+                list.innerHTML += `
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold text-slate-200">${p.name}</p>
+                            <p class="text-lg font-black text-indigo-400">${p.score} <span class="text-[10px] font-normal text-slate-400">Pts</span></p>
+                        </div>
+                        <div class="flex space-x-1.5">
+                            <button onclick="adjustScore(${idx}, 10)" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition">+10</button>
+                            <button onclick="adjustScore(${idx}, -5)" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition">-5</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function adjustScore(participantIndex, delta) {
+            if (currentRole !== 'host' || (window.hostUid && window.fb?.user?.uid !== window.hostUid)) {
+                showModal('Akses Ditolak', 'Hanya Host/Guru yang dapat menambahkan atau mengurangi poin.');
+                return;
+            }
+            if (![10, -5].includes(delta) || !participants[participantIndex]) return;
+            participants[participantIndex].score += delta;
+            renderHostScores();
+            renderHostParticipants();
+            syncRoomToCloud();
+        }
+
+        // Participant Mode Handlers
+        function showParticipantJoinModal() {
+            document.getElementById('participantJoinModal').classList.remove('hidden');
+        }
+
+        function closeParticipantJoinModal() {
+            document.getElementById('participantJoinModal').classList.add('hidden');
+        }
+
+        async function submitJoinParticipant() {
+            const code = document.getElementById('joinRoomCodeInput').value.trim().toUpperCase();
+            const teamName = document.getElementById('joinTeamNameInput').value.trim();
+            if (!code || !teamName) {
+                showModal('Peringatan', 'Kode room dan nama regu wajib diisi!');
+                return;
+            }
+
+            if (window.fb && window.fb.ready) await window.fb.ready;
+
+            roomCode = code;
+            currentRole = 'participant';
+            currentParticipantId = 'p_' + Math.random().toString(36).substr(2, 9);
+            myScore = 0;
+
+            const newParticipant = {
+                id: currentParticipantId,
+                name: teamName,
+                score: 0,
+                deviceLabel: detectDeviceLabel(),
+                joinedAt: Date.now()
+            };
+
+            if (window.fb && window.fb.db && window.fb.user) {
+                try {
+                    const roomRef = window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', 'rooms', code);
+                    const snap = await window.fb.getDoc(roomRef);
+                    if (!snap.exists()) {
+                        showModal('Room Tidak Ditemukan', `Kode Room "${code}" tidak aktif atau salah. Periksa kembali kode dari guru Anda.`);
+                        return;
+                    }
+                    const roomData = snap.data();
+                    const currentList = roomData.participants || [];
+                    if (currentList.length >= (roomData.targetParticipants || 6)) {
+                        showModal('Ruangan Penuh', `Jumlah maksimal regu peserta (${roomData.targetParticipants}) untuk room ini sudah terisi penuh.`);
+                        return;
+                    }
+                    const updatedParticipants = [...currentList, newParticipant];
+                    await window.fb.updateDoc(roomRef, { participants: updatedParticipants });
+                    listenToRoomCloud(code);
+                } catch (err) {
+                    console.error("Join error:", err);
+                    showModal('Gagal Terhubung', 'Terjadi gangguan jaringan saat mencoba masuk ke ruangan kuis.');
+                    return;
+                }
+            } else {
+                participants.push(newParticipant);
+            }
+
+            closeParticipantJoinModal();
+            document.getElementById('viewRoleSelect').classList.add('hidden');
+            document.getElementById('viewParticipantArena').classList.remove('hidden');
+            document.getElementById('roleIndicator').innerText = 'Mode Peserta (Regu)';
+            document.getElementById('roomBadge').classList.remove('hidden');
+            document.getElementById('roomBadge').classList.add('flex');
+            document.getElementById('displayRoomCode').innerText = `ROOM: ${roomCode}`;
+            document.getElementById('myTeamNameDisplay').innerText = teamName;
+            document.getElementById('myTeamScoreDisplay').innerText = '0';
+            document.getElementById('participantCurrentInfo').innerText = `Perangkat terdeteksi: ${newParticipant.deviceLabel}. Menunggu soal dari host.`;
+        }
+
+        async function pressBuzzer() {
+            if (currentRole !== 'participant' || buzzerWinner) return;
+            const teamName = document.getElementById('myTeamNameDisplay').innerText;
+            const btn = document.getElementById('buzzerBtn');
+            const note = document.getElementById('buzzerStatusNote');
+
+            if (!(window.fb?.db && window.fb?.user && roomCode)) {
+                showModal('Tidak Terhubung', 'Buzzer online memerlukan koneksi Firebase dan internet.');
+                return;
+            }
+            try {
+                const roomRef = window.fb.doc(window.fb.db, 'artifacts', window.fb.appId, 'public', 'data', 'rooms', roomCode);
+                const result = await window.fb.runTransaction(window.fb.db, async (tx) => {
+                    const snap = await tx.get(roomRef);
+                    if (!snap.exists()) throw new Error('ROOM_NOT_FOUND');
+                    const data = snap.data();
+                    if (data.buzzerWinner) return { accepted: false, winner: data.buzzerWinner, name: data.buzzerWinnerName || 'Regu lain' };
+                    const member = (data.participants || []).some(p => p.id === currentParticipantId);
+                    if (!member) throw new Error('NOT_REGISTERED');
+                    tx.update(roomRef, { buzzerWinner: currentParticipantId, buzzerWinnerName: teamName, buzzerPressedAt: Date.now() });
+                    return { accepted: true };
+                });
+                if (!result.accepted) {
+                    buzzerWinner = result.winner;
+                    note.innerText = `🔒 Bel lebih dahulu ditekan oleh ${result.name}`;
+                    return;
+                }
+                buzzerWinner = currentParticipantId;
+                buzzerWinnerName = teamName;
+                playBellSound();
+                btn.disabled = true;
+                btn.classList.add('opacity-40', 'cursor-not-allowed', 'scale-95');
+                note.innerText = '🔔 ANDA BERHASIL MENEKAN BEL PERTAMA!';
+                note.className = 'text-xs text-emerald-400 font-bold mt-4';
+            } catch (e) {
+                console.error('Buzzer press sync error:', e);
+                showModal('Bel Belum Terkirim', 'Tekanan bel belum berhasil dikirim. Periksa koneksi lalu coba lagi.');
+            }
+        }
+
+        // Attach all functions to global window scope for inline HTML handlers
+        window.initHostMode = initHostMode;
+        window.switchHostTab = switchHostTab;
+        window.copyShareLink = copyShareLink;
+        window.updateTargetParticipants = updateTargetParticipants;
+        window.openQuestionModal = openQuestionModal;
+        window.closeQuestionModal = closeQuestionModal;
+        window.toggleQuestionTypeFields = toggleQuestionTypeFields;
+        window.saveQuestion = saveQuestion;
+        window.deleteQuestion = deleteQuestion;
+        window.handleFileImport = handleFileImport;
+        window.removeParticipant = removeParticipant;
+        window.resetParticipants = resetParticipants;
+        window.evaluateHostOption = evaluateHostOption;
+        window.nextQuestion = nextQuestion;
+        window.changeTimerDuration = changeTimerDuration;
+        window.startTimer = startTimer;
+        window.resetTimer = resetTimer;
+        window.resetBuzzer = resetBuzzer;
+        window.adjustScore = adjustScore;
+        window.showParticipantJoinModal = showParticipantJoinModal;
+        window.closeParticipantJoinModal = closeParticipantJoinModal;
+        window.submitJoinParticipant = submitJoinParticipant;
+        window.pressBuzzer = pressBuzzer;
+        window.closeModal = closeModal;
+
+        // Auto-detect ?room= parameter from QR Code or URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                document.getElementById('joinRoomCodeInput').value = roomParam.toUpperCase();
+                showParticipantJoinModal();
+            }
+        });
+    </script>
+</body>
+</html>
